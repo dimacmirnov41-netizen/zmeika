@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Змейка (на коленке)</title>
+    <style>
+        body {
+            background: #12141c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            flex-direction: column;
+        }
+        canvas {
+            background: #1c1f2f;
+            border: 2px solid #ffa502;
+            border-radius: 8px;
+            display: block;
+        }
+        .status {
+            color: #ff4757;
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 15px;
+            min-height: 40px;
+        }
+        .controls {
+            color: #a4b0be;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+<div class="status" id="status"></div>
+<div class="controls">⬆ ⬇ ⬅ ➡  |  Пробел — перезапуск</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [
+        {x: 10, y: 10}
+    ];
+    let direction = {x: 1, y: 0};
+    let food = {x: 15, y: 10};
+    let gameOver = false;
+    let gameLoop;
+
+    function randomFood() {
+        food = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+        for (let s of snake) {
+            if (s.x === food.x && s.y === food.y) {
+                randomFood();
+                break;
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Змейка
+        ctx.fillStyle = '#00c647';
+        for (let s of snake) {
+            ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        // Голова (жёлтая)
+        const head = snake[0];
+        ctx.fillStyle = '#ffa502';
+        ctx.fillRect(head.x * gridSize, head.y * gridSize, gridSize - 2, gridSize - 2);
+
+        // Еда
+        ctx.fillStyle = '#ff4757';
+        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+    }
+
+    function update() {
+        if (gameOver) return;
+
+        const head = {...snake[0]};
+        head.x += direction.x;
+        head.y += direction.y;
+
+        // Столкновение со стенами
+        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+            gameOver = true;
+            status.textContent = '💀 ИГРА ОКОНЧЕНА';
+            return;
+        }
+
+        // Столкновение с хвостом
+        for (let s of snake) {
+            if (s.x === head.x && s.y === head.y) {
+                gameOver = true;
+                status.textContent = '💀 ИГРА ОКОНЧЕНА';
+                return;
+            }
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+            randomFood();
+        } else {
+            snake.pop();
+        }
+    }
+
+    function gameStep() {
+        update();
+        draw();
+    }
+
+    function startGame() {
+        if (gameLoop) clearInterval(gameLoop);
+        snake = [{x: 10, y: 10}];
+        direction = {x: 1, y: 0};
+        gameOver = false;
+        status.textContent = '';
+        randomFood();
+        gameLoop = setInterval(gameStep, 150);
+        draw();
+    }
+
+    // Управление
+    document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if (key === ' ') {
+            startGame();
+            return;
+        }
+
+        if (gameOver) return;
+
+        const newDir = {...direction};
+        if (key === 'ArrowUp' && direction.y !== 1) { newDir.x = 0; newDir.y = -1; }
+        else if (key === 'ArrowDown' && direction.y !== -1) { newDir.x = 0; newDir.y = 1; }
+        else if (key === 'ArrowLeft' && direction.x !== 1) { newDir.x = -1; newDir.y = 0; }
+        else if (key === 'ArrowRight' && direction.x !== -1) { newDir.x = 1; newDir.y = 0; }
+        else return;
+
+        direction = newDir;
+    });
+
+    // Запуск
+    startGame();
+</script>
+
+</body>
+</html>
