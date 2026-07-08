@@ -20,11 +20,17 @@
             border-radius: 8px;
             display: block;
         }
+        .score {
+            color: #ffa502;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
         .status {
             color: #ff4757;
             font-size: 28px;
             font-weight: bold;
-            margin-top: 15px;
+            margin-top: 5px;
             min-height: 40px;
         }
         .controls {
@@ -37,6 +43,7 @@
 <body>
 
 <canvas id="gameCanvas" width="400" height="400"></canvas>
+<div class="score" id="score">Очки: 0</div>
 <div class="status" id="status"></div>
 <div class="controls">⬆ ⬇ ⬅ ➡  |  Пробел — перезапуск</div>
 
@@ -44,6 +51,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const status = document.getElementById('status');
+    const scoreDisplay = document.getElementById('score');
 
     const gridSize = 20;
     const tileCount = canvas.width / gridSize;
@@ -51,8 +59,12 @@
     let snake = [
         {x: 10, y: 10}
     ];
+    // direction — направление, которое реально применяется в текущем тике
+    // nextDirection — то, что нажал игрок, применится в НАЧАЛЕ следующего тика
     let direction = {x: 1, y: 0};
+    let nextDirection = {x: 1, y: 0};
     let food = {x: 15, y: 10};
+    let score = 0;
     let gameOver = false;
     let gameLoop;
 
@@ -91,6 +103,11 @@
     function update() {
         if (gameOver) return;
 
+        // Применяем направление именно тут, в начале тика — раньше это
+        // делалось прямо в keydown, поэтому при двух быстрых нажатиях
+        // подряд (например ⬅ сразу после ➡) змейка иногда кусала сама себя
+        direction = nextDirection;
+
         const head = {...snake[0]};
         head.x += direction.x;
         head.y += direction.y;
@@ -114,6 +131,8 @@
         snake.unshift(head);
 
         if (head.x === food.x && head.y === food.y) {
+            score += 10;
+            scoreDisplay.textContent = 'Очки: ' + score;
             randomFood();
         } else {
             snake.pop();
@@ -129,7 +148,10 @@
         if (gameLoop) clearInterval(gameLoop);
         snake = [{x: 10, y: 10}];
         direction = {x: 1, y: 0};
+        nextDirection = {x: 1, y: 0};
         gameOver = false;
+        score = 0;
+        scoreDisplay.textContent = 'Очки: 0';
         status.textContent = '';
         randomFood();
         gameLoop = setInterval(gameStep, 150);
@@ -146,14 +168,17 @@
 
         if (gameOver) return;
 
-        const newDir = {...direction};
+        // Сравниваем с direction (последнее реально применённое направление),
+        // а не с nextDirection — иначе быстрые двойные нажатия всё равно
+        // могли бы проскочить проверку и развернуть змейку на 180°
+        const newDir = {...nextDirection};
         if (key === 'ArrowUp' && direction.y !== 1) { newDir.x = 0; newDir.y = -1; }
         else if (key === 'ArrowDown' && direction.y !== -1) { newDir.x = 0; newDir.y = 1; }
         else if (key === 'ArrowLeft' && direction.x !== 1) { newDir.x = -1; newDir.y = 0; }
         else if (key === 'ArrowRight' && direction.x !== -1) { newDir.x = 1; newDir.y = 0; }
         else return;
 
-        direction = newDir;
+        nextDirection = newDir;
     });
 
     // Запуск
