@@ -115,7 +115,7 @@
         // Столкновение со стенами
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
             gameOver = true;
-            status.textContent = '💀 ИГРА ОКОНЧЕНА';
+            status.textContent = 'ИГРА ОКОНЧЕНА';
             return;
         }
 
@@ -123,7 +123,7 @@
         for (let s of snake) {
             if (s.x === head.x && s.y === head.y) {
                 gameOver = true;
-                status.textContent = '💀 ИГРА ОКОНЧЕНА';
+                status.textContent = 'ИГРА ОКОНЧЕНА';
                 return;
             }
         }
