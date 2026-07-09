@@ -19,6 +19,7 @@
             border: 2px solid #ffa502;
             border-radius: 8px;
             display: block;
+            position: relative;
         }
         .info {
             display: flex;
@@ -101,6 +102,7 @@
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 0 30px rgba(255, 165, 2, 0.2);
+            margin-top: 10px;
         }
         .menu .start-btn:hover {
             transform: scale(1.1);
@@ -114,6 +116,58 @@
         }
         .menu .description span {
             color: #ffa502;
+        }
+        .game-over-title {
+            color: #ff4757;
+            font-size: 52px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 71, 87, 0.5);
+        }
+        .game-over-score {
+            color: #ffa502;
+            font-size: 28px;
+            margin-bottom: 25px;
+        }
+        .menu .buttons-row {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .menu .buttons-row button {
+            background: #1c1f2f;
+            color: #a4b0be;
+            border: 2px solid #ffa502;
+            border-radius: 8px;
+            padding: 12px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .menu .buttons-row button:hover {
+            background: #ffa502;
+            color: #12141c;
+            transform: scale(1.05);
+        }
+        .menu .buttons-row .github-btn {
+            background: #1c1f2f;
+            border-color: #a4b0be;
+        }
+        .menu .buttons-row .github-btn:hover {
+            background: #a4b0be;
+            border-color: #a4b0be;
+        }
+        .menu .buttons-row .retry-btn {
+            background: #ffa502;
+            color: #12141c;
+            border-color: #ffa502;
+        }
+        .menu .buttons-row .retry-btn:hover {
+            background: #ff8c00;
+            border-color: #ff8c00;
         }
         .hidden {
             display: none !important;
@@ -136,6 +190,15 @@
     </div>
 </div>
 
+<div class="menu hidden" id="gameOverMenu">
+    <div class="game-over-title">💀 ИГРА ОКОНЧЕНА</div>
+    <div class="game-over-score" id="finalScore">Очки: 0</div>
+    <div class="buttons-row">
+        <button class="retry-btn" id="retryBtn">🔄 Переиграть</button>
+        <button class="github-btn" id="githubBtn">🐙 Мой GitHub</button>
+    </div>
+</div>
+
 <canvas id="gameCanvas" width="400" height="400"></canvas>
 <div class="status" id="status"></div>
 <div class="info">
@@ -148,7 +211,11 @@
     const status = document.getElementById('status');
     const scoreDisplay = document.getElementById('score');
     const menu = document.getElementById('menu');
+    const gameOverMenu = document.getElementById('gameOverMenu');
     const startBtn = document.getElementById('startBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const githubBtn = document.getElementById('githubBtn');
+    const finalScore = document.getElementById('finalScore');
 
     const gridSize = 20;
     const tileCount = canvas.width / gridSize;
@@ -168,6 +235,7 @@
         if (snake.length >= totalCells) {
             gameOver = true;
             status.textContent = 'ПОБЕДА!';
+            showGameOver();
             return false;
         }
 
@@ -185,12 +253,19 @@
         if (freeCells.length === 0) {
             gameOver = true;
             status.textContent = 'ПОБЕДА!';
+            showGameOver();
             return false;
         }
 
         const randomIndex = Math.floor(Math.random() * freeCells.length);
         food = freeCells[randomIndex];
         return true;
+    }
+
+    function showGameOver() {
+        finalScore.textContent = 'Очки: ' + score;
+        gameOverMenu.classList.remove('hidden');
+        if (gameLoop) clearInterval(gameLoop);
     }
 
     function draw() {
@@ -222,6 +297,7 @@
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
             gameOver = true;
             status.textContent = 'ИГРА ОКОНЧЕНА';
+            showGameOver();
             return;
         }
 
@@ -229,6 +305,7 @@
             if (snake[i].x === head.x && snake[i].y === head.y) {
                 gameOver = true;
                 status.textContent = 'ИГРА ОКОНЧЕНА';
+                showGameOver();
                 return;
             }
         }
@@ -263,6 +340,7 @@
         status.textContent = '';
         gameStarted = true;
         menu.classList.add('hidden');
+        gameOverMenu.classList.add('hidden');
         generateFood();
         gameLoop = setInterval(gameStep, currentSpeed);
         draw();
@@ -272,6 +350,7 @@
         gameStarted = false;
         if (gameLoop) clearInterval(gameLoop);
         menu.classList.remove('hidden');
+        gameOverMenu.classList.add('hidden');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         status.textContent = '';
         scoreDisplay.textContent = 'Очки: 0';
@@ -305,6 +384,14 @@
     });
 
     startBtn.addEventListener('click', startGame);
+    
+    retryBtn.addEventListener('click', function() {
+        startGame();
+    });
+
+    githubBtn.addEventListener('click', function() {
+        window.open('https://github.com/yourusername', '_blank');
+    });
 
     showMenu();
 </script>
