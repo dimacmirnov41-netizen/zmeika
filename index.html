@@ -102,7 +102,6 @@
             color: #12141c;
             box-shadow: 0 0 20px rgba(255, 165, 2, 0.3);
         }
-        /* Кнопка "Мобилка" в меню сложности */
         .mobile-switch-btn {
             display: inline-block;
             background: #1c1f2f;
@@ -127,7 +126,6 @@
         .mobile-switch-btn:active {
             transform: scale(0.95);
         }
-
         .menu .start-btn {
             background: #ffa502;
             color: #12141c;
@@ -206,217 +204,194 @@
     </style>
 </head>
 <body>
-
-<div class="menu" id="menu">
-    <h1>🐍 Змейка</h1>
-    <div class="difficulty">
-        <button data-speed="200" class="active">Лёгкий</button>
-        <button data-speed="130">Средний</button>
-        <button data-speed="80">Сложный</button>
-        <button data-speed="40">Хардкор</button>
-        <a href="index-mobile.html" class="mobile-switch-btn">📱 Мобилка</a>
+    <div class="menu" id="menu">
+        <h1>🐍 Змейка</h1>
+        <div class="difficulty">
+            <button data-speed="200" class="active">Лёгкий</button>
+            <button data-speed="130">Средний</button>
+            <button data-speed="80">Сложный</button>
+            <button data-speed="40">Хардкор</button>
+            <a href="index-mobile.html" class="mobile-switch-btn">📱 Мобилка</a>
+        </div>
+        <button class="start-btn" id="startBtn">▶ СТАРТ</button>
+        <div class="description">
+            Управление: <span>⬆ ⬇ ⬅ ➡</span> | Пробел — перезапуск
+        </div>
     </div>
-    <button class="start-btn" id="startBtn">▶ СТАРТ</button>
-    <div class="description">
-        Управление: <span>⬆ ⬇ ⬅ ➡</span> | Пробел — перезапуск
+    <div class="menu hidden" id="gameOverMenu">
+        <div class="game-over-title">ИГРА ОКОНЧЕНА</div>
+        <div class="game-over-score" id="finalScore">Очки: 0</div>
+        <div class="buttons-row">
+            <button class="retry-btn" id="retryBtn">🔄 Переиграть</button>
+        </div>
     </div>
-</div>
-
-<div class="menu hidden" id="gameOverMenu">
-    <div class="game-over-title">ИГРА ОКОНЧЕНА</div>
-    <div class="game-over-score" id="finalScore">Очки: 0</div>
-    <div class="buttons-row">
-        <button class="retry-btn" id="retryBtn">🔄 Переиграть</button>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="status" id="status"></div>
+    <div class="info">
+        <div class="score" id="score">Очки: 0</div>
     </div>
-</div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const scoreDisplay = document.getElementById('score');
+        const menu = document.getElementById('menu');
+        const gameOverMenu = document.getElementById('gameOverMenu');
+        const startBtn = document.getElementById('startBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const finalScore = document.getElementById('finalScore');
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        let snake = [{x: 10, y: 10}];
+        let direction = {x: 1, y: 0};
+        let nextDirection = {x: 1, y: 0};
+        let food = {x: 15, y: 10};
+        let score = 0;
+        let gameOver = false;
+        let gameLoop;
+        let currentSpeed = 200;
+        let gameStarted = false;
 
-<canvas id="gameCanvas" width="400" height="400"></canvas>
-<div class="status" id="status"></div>
-<div class="info">
-    <div class="score" id="score">Очки: 0</div>
-</div>
-
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const status = document.getElementById('status');
-    const scoreDisplay = document.getElementById('score');
-    const menu = document.getElementById('menu');
-    const gameOverMenu = document.getElementById('gameOverMenu');
-    const startBtn = document.getElementById('startBtn');
-    const retryBtn = document.getElementById('retryBtn');
-    const finalScore = document.getElementById('finalScore');
-
-    const gridSize = 20;
-    const tileCount = canvas.width / gridSize;
-
-    let snake = [{x: 10, y: 10}];
-    let direction = {x: 1, y: 0};
-    let nextDirection = {x: 1, y: 0};
-    let food = {x: 15, y: 10};
-    let score = 0;
-    let gameOver = false;
-    let gameLoop;
-    let currentSpeed = 200;
-    let gameStarted = false;
-
-    function generateFood() {
-        const totalCells = tileCount * tileCount;
-        if (snake.length >= totalCells) {
-            gameOver = true;
-            status.textContent = 'ПОБЕДА!';
-            showGameOver();
-            return false;
-        }
-
-        const snakeSet = new Set(snake.map(s => `${s.x},${s.y}`));
-        const freeCells = [];
-
-        for (let i = 0; i < tileCount; i++) {
-            for (let j = 0; j < tileCount; j++) {
-                if (!snakeSet.has(`${i},${j}`)) {
-                    freeCells.push({x: i, y: j});
+        function generateFood() {
+            const totalCells = tileCount * tileCount;
+            if (snake.length >= totalCells) {
+                gameOver = true;
+                status.textContent = 'ПОБЕДА!';
+                showGameOver();
+                return false;
+            }
+            const snakeSet = new Set(snake.map(s => `${s.x},${s.y}`));
+            const freeCells = [];
+            for (let i = 0; i < tileCount; i++) {
+                for (let j = 0; j < tileCount; j++) {
+                    if (!snakeSet.has(`${i},${j}`)) {
+                        freeCells.push({x: i, y: j});
+                    }
                 }
             }
+            if (freeCells.length === 0) {
+                gameOver = true;
+                status.textContent = 'ПОБЕДА!';
+                showGameOver();
+                return false;
+            }
+            const randomIndex = Math.floor(Math.random() * freeCells.length);
+            food = freeCells[randomIndex];
+            return true;
         }
 
-        if (freeCells.length === 0) {
-            gameOver = true;
-            status.textContent = 'ПОБЕДА!';
-            showGameOver();
-            return false;
+        function showGameOver() {
+            finalScore.textContent = 'Очки: ' + score;
+            gameOverMenu.classList.remove('hidden');
+            if (gameLoop) clearInterval(gameLoop);
         }
 
-        const randomIndex = Math.floor(Math.random() * freeCells.length);
-        food = freeCells[randomIndex];
-        return true;
-    }
-
-    function showGameOver() {
-        finalScore.textContent = 'Очки: ' + score;
-        gameOverMenu.classList.remove('hidden');
-        if (gameLoop) clearInterval(gameLoop);
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#00c647';
-        for (let i = 0; i < snake.length; i++) {
-            const s = snake[i];
-            ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 2, gridSize - 2);
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00c647';
+            for (let i = 0; i < snake.length; i++) {
+                const s = snake[i];
+                ctx.fillRect(s.x * gridSize, s.y * gridSize, gridSize - 2, gridSize - 2);
+            }
+            const head = snake[0];
+            ctx.fillStyle = '#ffa502';
+            ctx.fillRect(head.x * gridSize, head.y * gridSize, gridSize - 2, gridSize - 2);
+            ctx.fillStyle = '#ff4757';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
         }
 
-        const head = snake[0];
-        ctx.fillStyle = '#ffa502';
-        ctx.fillRect(head.x * gridSize, head.y * gridSize, gridSize - 2, gridSize - 2);
-
-        ctx.fillStyle = '#ff4757';
-        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
-    }
-
-    function update() {
-        if (gameOver || !gameStarted) return;
-
-        direction = nextDirection;
-
-        const head = {...snake[0]};
-        head.x += direction.x;
-        head.y += direction.y;
-
-        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-            gameOver = true;
-            status.textContent = 'ИГРА ОКОНЧЕНА';
-            showGameOver();
-            return;
-        }
-
-        for (let i = 0; i < snake.length; i++) {
-            if (snake[i].x === head.x && snake[i].y === head.y) {
+        function update() {
+            if (gameOver || !gameStarted) return;
+            direction = nextDirection;
+            const head = {...snake[0]};
+            head.x += direction.x;
+            head.y += direction.y;
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
                 gameOver = true;
                 status.textContent = 'ИГРА ОКОНЧЕНА';
                 showGameOver();
                 return;
             }
-        }
-
-        snake.unshift(head);
-
-        if (head.x === food.x && head.y === food.y) {
-            score += 10;
-            scoreDisplay.textContent = 'Очки: ' + score;
-            const success = generateFood();
-            if (!success) {
-                clearInterval(gameLoop);
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    gameOver = true;
+                    status.textContent = 'ИГРА ОКОНЧЕНА';
+                    showGameOver();
+                    return;
+                }
             }
-        } else {
-            snake.pop();
-        }
-    }
-
-    function gameStep() {
-        update();
-        draw();
-    }
-
-    function startGame() {
-        if (gameLoop) clearInterval(gameLoop);
-        snake = [{x: 10, y: 10}];
-        direction = {x: 1, y: 0};
-        nextDirection = {x: 1, y: 0};
-        gameOver = false;
-        score = 0;
-        scoreDisplay.textContent = 'Очки: 0';
-        status.textContent = '';
-        gameStarted = true;
-        menu.classList.add('hidden');
-        gameOverMenu.classList.add('hidden');
-        generateFood();
-        gameLoop = setInterval(gameStep, currentSpeed);
-        draw();
-    }
-
-    function showMenu() {
-        gameStarted = false;
-        if (gameLoop) clearInterval(gameLoop);
-        menu.classList.remove('hidden');
-        gameOverMenu.classList.add('hidden');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        status.textContent = '';
-        scoreDisplay.textContent = 'Очки: 0';
-    }
-
-    document.addEventListener('keydown', (e) => {
-        const key = e.key;
-        if (key === ' ' && gameStarted) {
-            startGame();
-            return;
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreDisplay.textContent = 'Очки: ' + score;
+                const success = generateFood();
+                if (!success) {
+                    clearInterval(gameLoop);
+                }
+            } else {
+                snake.pop();
+            }
         }
 
-        if (!gameStarted || gameOver) return;
+        function gameStep() {
+            update();
+            draw();
+        }
 
-        const newDir = {...nextDirection};
-        if (key === 'ArrowUp' && direction.y !== 1) { newDir.x = 0; newDir.y = -1; }
-        else if (key === 'ArrowDown' && direction.y !== -1) { newDir.x = 0; newDir.y = 1; }
-        else if (key === 'ArrowLeft' && direction.x !== 1) { newDir.x = -1; newDir.y = 0; }
-        else if (key === 'ArrowRight' && direction.x !== -1) { newDir.x = 1; newDir.y = 0; }
-        else return;
+        function startGame() {
+            if (gameLoop) clearInterval(gameLoop);
+            snake = [{x: 10, y: 10}];
+            direction = {x: 1, y: 0};
+            nextDirection = {x: 1, y: 0};
+            gameOver = false;
+            score = 0;
+            scoreDisplay.textContent = 'Очки: 0';
+            status.textContent = '';
+            gameStarted = true;
+            menu.classList.add('hidden');
+            gameOverMenu.classList.add('hidden');
+            generateFood();
+            gameLoop = setInterval(gameStep, currentSpeed);
+            draw();
+        }
 
-        nextDirection = newDir;
-    });
+        function showMenu() {
+            gameStarted = false;
+            if (gameLoop) clearInterval(gameLoop);
+            menu.classList.remove('hidden');
+            gameOverMenu.classList.add('hidden');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            status.textContent = '';
+            scoreDisplay.textContent = 'Очки: 0';
+        }
 
-    document.querySelectorAll('.menu .difficulty button').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.menu .difficulty button').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentSpeed = parseInt(this.dataset.speed);
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (key === ' ' && gameStarted) {
+                startGame();
+                return;
+            }
+            if (!gameStarted || gameOver) return;
+            const newDir = {...nextDirection};
+            if (key === 'ArrowUp' && direction.y !== 1) { newDir.x = 0; newDir.y = -1; }
+            else if (key === 'ArrowDown' && direction.y !== -1) { newDir.x = 0; newDir.y = 1; }
+            else if (key === 'ArrowLeft' && direction.x !== 1) { newDir.x = -1; newDir.y = 0; }
+            else if (key === 'ArrowRight' && direction.x !== -1) { newDir.x = 1; newDir.y = 0; }
+            else return;
+            nextDirection = newDir;
         });
-    });
 
-    startBtn.addEventListener('click', startGame);
-    retryBtn.addEventListener('click', startGame);
+        document.querySelectorAll('.menu .difficulty button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.menu .difficulty button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentSpeed = parseInt(this.dataset.speed);
+            });
+        });
 
-    showMenu();
-</script>
+        startBtn.addEventListener('click', startGame);
+        retryBtn.addEventListener('click', startGame);
+        showMenu();
+    </script>
 </body>
 </html>
